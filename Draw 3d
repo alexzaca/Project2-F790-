@@ -1,0 +1,270 @@
+# Renders a 2D model into a PPM image
+import sys
+import numpy as np
+
+# ---------- Configuration types and constants ----------
+
+MAX_SIZE = 1024
+MAX_VAL = 255
+MAX_LINE_LEN = 10240-1 # 10240 characters minus the \0 terminator
+DEFAULT_BACKGROUND = 255
+CHANNELS_N = 3
+COORD_N = 3
+DEFAULT_COLOR = (0, 0, 0,)
+IMAGE_DTYPE = np.uint8
+VIEWPORT_DTYPE = np.int64
+MODEL_DTYPE = np.float64
+ZBUFFER_DTYPE = np.float64
+ZBUFFER_BACKGROUND = -np.inf
+
+# ---------- Output routines ----------
+
+def put_string(output, output_file):
+    output = output.encode('ascii') if isinstance(output, str) else output
+    written_n = output_file.write(output)
+    if written_n != len(output):
+        print('error writing to output stream', file=sys.stderr)
+        sys.exit(1)
+
+
+def save_ppm(image, output_file):
+    # Defines image header
+    magic_number_1 = 'P'
+    magic_number_2 = '6'
+    width  = image.shape[1]
+    height = image.shape[0]
+    end_of_header = '\n'
+
+    # Writes header
+    put_string(magic_number_1, output_file)
+    put_string(magic_number_2, output_file)
+    put_string('\n', output_file)
+    put_string('%d %d\n' % (width, height), output_file)
+    put_string('%d' % MAX_VAL, output_file)
+    put_string(end_of_header, output_file)
+
+    # Outputs image
+    put_string(image.tobytes(), output_file)
+
+# ---------- Drawing/model routines ----------
+
+def draw_line(image, x0, y0, z0, x1, y1, z1, color):
+    h, w = image.shape[0],image.shape[1]
+    #First, aply the transformers in the inputed points
+    #Aply the standart matrix in the points
+    p0 = transform_matrix.dot([x0,y0,z0,1])
+    p1 = transform_matrix.dot([x1,y1,z1,1])
+    #Aplying, if four dimension != 1, the homogeneous transformers
+    p0 = (1/p0[3])*p0 if p0[3] != 1 else p0
+    p1 = (1/p1[3])*p1 if p1[3] != 1 else p1
+    #Rounding the result to integer
+    round(p0)
+    round(p1)
+    #Define the two new poits initial and final to draw the line
+    x0,y0,z0 = int(p0[0]),int(p0[1]),int(p0[2])
+    x1,y1,z1 = int(p1[0]),int(p1[1]),int(p1[2])
+    #Local para projetar os pontos!!!!!!
+
+    # Computes differences
+    dx = x1-x0
+    dy = y1-y0
+    dc = abs(dx) # delta x in book - here we are using row, col coordinates
+    dr = abs(dy) # delta y in book
+    x,y = x0,y0 #starting the points to be calculate and draw
+    if dr <= dc:
+        # Line inclination is at most 1
+        d_horizontal = 2*dr      # delta east in book
+        d_diagonal   = 2*(dr-dc) # delta northeast in book
+        # ...draws line
+        #Define the direction of the steps by the relative position of the final point
+        step_row = 1 if y1>=y0 else -1
+        step_col = 1 if x1>=x0 else -1
+        s0, s1 = min(x0,x1), max(x0,x1) #Define the limits of the 'for'
+        d = 2*dr - dc # starting D value, D_init in book
+        for c in range(s0,s1+1):
+            #Verify if the pixels are in the bound of the image
+            try:
+                #Tranform the point by the correspondent pixel and draw it
+                image[h-1-y,x] = color
+            except Exception:
+                print(f'The input {x},{y} from ({x0},{y0}) to ({x1},{y1}) is a pixel out of the defined scale', file=sys.stderr)
+                sys.exit(1)
+
+            #Define the x and y for the next point
+            if d<=0:
+                d += d_horizontal
+                x += step_col
+            else:
+                d += d_diagonal
+                y += step_row
+                x += step_col
+    else:
+        # Line inclination is greater than one -- inverts the roles of row and column
+        d_vertical = 2*dc
+        d_diagonal = 2*(dc-dr)
+        #...draws lines
+        #Define the direction of the steps by the relative position of the final point
+        step_col = 1 if x1>=x0 else -1
+        step_row = 1 if y1>=y0 else -1
+        s0, s1 = min(y0,y1), max(y0,y1) #Define the limits of the 'for'
+        d = 2*dc - dr # starting D value, D_init in book
+        for r in range(s0,s1+1):
+            #Verify if the pixels are in the bound of the image
+            try:
+                #Tranform the point by the correspondent pixel and draw it
+                image[h-1-y,x] = color
+            except Exception:
+                print(f'The input {x},{y} from ({x0},{y0}) to ({x1},{y1}) is a pixel out of the defined scale', file=sys.stderr)
+                sys.exit(1)
+
+            #Define the x and y for the next point
+            if (d<=0):
+                d += d_vertical
+                y += step_row
+            else:
+                d += d_diagonal
+                y += step_row
+                x += step_col
+
+def make_matrix(info_line):
+    #Make the list info_line into a 4x4 matrix
+    matrix = np.zeros((4,4))
+    k=0
+    for i in range(0,4):
+        for j in range(0,4):
+            matrix[i][j] = info_line[k+j]
+        k += 4
+    return matrix
+
+# ---------- Main routine ----------
+
+# Parses and checks command-line arguments
+if len(sys.argv)!=3:
+    print("usage: python draw_2d_model.py <input.dat> <output.ppm>\n"
+          "       interprets the drawing instructions in the input file and renders\n"
+          "       the output in the NETPBM PPM format into output.ppm")
+    sys.exit(1)
+
+input_file_name  = sys.argv[1]
+output_file_name = sys.argv[2]
+
+# Reads input file and parses its header
+with open(input_file_name, 'rt', encoding='utf-8') as input_file:
+    input_lines = input_file.readlines()
+
+if input_lines[0] != 'EA979V4\n':
+    print(f'input file format not recognized!', file=sys.stderr)
+    sys.exit(1)
+
+dimensions = input_lines[1].split()
+width = int(dimensions[0])
+height = int(dimensions[1])
+
+if width<=0 or width>MAX_SIZE or height<=0 or height>MAX_SIZE:
+    print(f'input file has invalid image dimensions: must be >0 and <={MAX_SIZE}!', file=sys.stderr)
+    sys.exit(1)
+
+# Creates image
+image = np.full((height, width, CHANNELS_N), fill_value=DEFAULT_BACKGROUND, dtype=IMAGE_DTYPE)
+zbuffer = np.full((height, width,), fill_value=ZBUFFER_BACKGROUND, dtype=ZBUFFER_DTYPE)
+
+transform_matrix = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0.0.0.1]], dtype = float)
+projection_matrix = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0.0.0.1]], dtype = float)
+color = DEFAULT_COLOR
+
+# Main loop - interprets and renders drawing commands
+for line_n,line in enumerate(input_lines[2:], start=3):
+
+    if len(line)>MAX_LINE_LEN:
+        print(f'line {line_n}: line too long!', file=sys.stderr)
+        sys.exit(1)
+
+    if not line.strip():
+        # Blank line - skips
+        continue
+    if line[0] == '#':
+        # Comment line - skips
+        continue
+
+    tokens = line.strip().split()
+    command = tokens[0]
+    values = tokens[1:]
+    def check_values(n):
+        if len(values) != n:
+            print(f'line {line_n}: command {command} expected {n} values but got {len(values)}!',
+                  file=sys.stderr)
+            sys.exit(1)
+
+    #commands:
+    #V --> 16 numeros representa matriz de projeção viewport que substituirá a standart
+    #M --> 16 numeros substitui a matriz de trnasformação
+    #m --> 16 numeros multiplica a matriz de transfomração
+    #c --> cor de fundo da imagem
+    #C --> cor da caneta
+    #L --> 6 números representa um segmento de reta a ser traçado
+    #P --> N e 3N numeros polilinha
+    #R --> N e 3N poligono
+    #PUSH --> guarda a atual matriz de transformação numa pilha de matrizes
+    #POP --> tira a matriz da pilha e utiliza como a matriz de transformaçãov
+    #SPH --> 3 numeros representa uma esfera com raio, num de meridianos, num de paralelos
+    #CUB --> 2 numeros desenha um cubo dando valor do lado, 0||1 diagonal ausente ou presente
+
+
+    if command == 'c':
+        # Clears with new background color
+        check_values(CHANNELS_N)
+        background_color = np.array(values, dtype=IMAGE_DTYPE)
+        image[...] = background_color
+        zbuffer[...] = ZBUFFER_BACKGROUND
+
+    elif command == 'C':
+        #Change the color of the pincel
+        check_values(CHANNELS_N)
+        color = np.array(values, dtype=IMAGE_DTYPE)
+
+    elif command == 'L':
+         #Draw a line between two determinates points
+        check_values(6)
+        draw_line(image,values[0],values[1],values[2],values[3],values[4],values[5],color)
+    
+    elif command == 'P':
+        #Draw an open polyline with n points
+        check_values(1+3*values[0])
+        for i in range(1, 2*(values[0]-1),2):
+            draw_line(image,values[0],values[1],values[2],values[3],values[4],values[5],color)
+    
+    elif command == 'R':
+        #Draw a polygon with determineded n points
+        check_values(1+3*values[0])
+        for i in range(1, 2*(values[0]-1),2):
+            draw_line(image,values[0],values[1],values[2],values[3],values[4],values[5],color)
+    
+        draw_line(image,values[2*values[0]-2],values[2*values[0]-1],values[2*values[0]],values[1],values[2],values[3],color)
+
+    elif command == 'M':
+        #Change tranform_matrix that aplies every object to be drawned by the M matrix
+        check_values(16)
+        transform_matrix = make_matrix(values)
+
+    elif command == 'm':
+        #Change SM that aplies every object to be drawned by SM *= m
+        check_values(16)
+        transform_matrix = transform_matrix.dot(make_matrix(values))
+        
+    elif command == 'V':
+
+    elif command == 'PUSH':
+
+    elif command == 'POP':
+
+    elif command == 'SPH':
+
+    elif command == 'CUB':
+
+    else:
+        print(f'line {line_n}: unrecognized command "{command}"!', file=sys.stderr)
+        sys.exit(1)
+
+# If we reached this point, everything went well - outputs rendered image file
+with open(output_file_name, 'wb') as output_file:
+    save_ppm(image, output_file)
