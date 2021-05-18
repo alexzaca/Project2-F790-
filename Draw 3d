@@ -247,7 +247,7 @@ for line_n,line in enumerate(input_lines[2:], start=3):
         transform_matrix = make_matrix(values)
 
     elif command == 'm':
-        #Change SM that aplies every object to be drawned by SM *= m
+        #Change transform_matrix that aplies every object to be drawned by transform_matrix *= m
         check_values(16)
         transform_matrix = transform_matrix.dot(make_matrix(values))
         
