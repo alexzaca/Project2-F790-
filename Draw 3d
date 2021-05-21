@@ -170,6 +170,7 @@ zbuffer = np.full((height, width,), fill_value=ZBUFFER_BACKGROUND, dtype=ZBUFFER
 
 transform_matrix = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0.0.0.1]], dtype = float)
 projection_matrix = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0.0.0.1]], dtype = float)
+pilha_matrix = []
 color = DEFAULT_COLOR
 
 # Main loop - interprets and renders drawing commands
@@ -254,6 +255,7 @@ for line_n,line in enumerate(input_lines[2:], start=3):
     elif command == 'V':
 
     elif command == 'PUSH':
+        pilha_matrix.append(transform_matrix)
 
     elif command == 'POP':
 
