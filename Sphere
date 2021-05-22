@@ -1,0 +1,29 @@
+import numpy as np
+
+#Exemplo de um octaedro como o professor me mandou no slack 
+r = 10
+count_p = 1
+count_m = 2
+pi = np.pi
+
+def sphere(quant_p,quant_m):
+    n=1
+    for j in range(0,quant_p+2):
+        theta = pi*j/(quant_p+1) 
+        #Neste caso como temos um parelelo temos que quebrar o passo do theta em dois
+        for i in range(0,2*quant_m):
+            phi = pi*i/quant_m
+            #Aqui na verdade é 2*pi*i/(2*quant_m)
+
+            x = r*np.cos(phi)*np.sin(theta)
+            y = r*np.sin(theta)*np.sin(phi)
+            z = r*np.cos(theta)
+
+            print(n,'°',' point','\nx = ',x,'\ny = ',y,'\nz = ',z,'\n')
+            n+=1
+
+            #Verifica se são os polos para não calcular pontos a mais
+            if theta == 0 or theta == pi: 
+                break
+
+sphere(count_p,count_m)
