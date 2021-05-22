@@ -50,44 +50,43 @@ def save_ppm(image, output_file):
 
 def draw_line(image, x0, y0, z0, x1, y1, z1, color):
     h, w = image.shape[0],image.shape[1]
-    #First, aply the transformers in the inputed points
-    #Aply the standart matrix in the points
+    # First, apply the transformer in the inputed points
+    # Apply the standart matrix in the points
     p0 = transform_matrix.dot([float(x0),float(y0),float(z0),1])
     p1 = transform_matrix.dot([float(x1),float(y1),float(z1),1])
-    #Aplying, if four dimension != 1, the homogeneous transformers
+    # Applying, if fourth dimension != 1, the homogeneous transformers
     p0 = (1/p0[3])*p0 if p0[3] != 1 else p0
     p1 = (1/p1[3])*p1 if p1[3] != 1 else p1
-    #Rounding the result to integer
+    # Rounding the result to integer
     np.rint(p0)
     np.rint(p1)
-    #Define the two new poits initial and final to draw the line in 3d world
+    # Define two new initial and final points to draw the line in 3d world
     x0,y0,z0 = int(p0[0]),int(p0[1]),int(p0[2])
     x1,y1,z1 = int(p1[0]),int(p1[1]),int(p1[2])
-    #Local para projetar os pontos!!!!!!
 
     # Computes differences
     dx = x1-x0
     dy = y1-y0
     dc = abs(dx) # delta x in book - here we are using row, col coordinates
     dr = abs(dy) # delta y in book
-    x,y,z = x0,y0,z0 #starting the points to be calculate and draw ##TEST WITH Z
+    x,y,z = x0,y0,z0 # starting the points to be calculated and drawn ##TEST WITH Z
     if dr <= dc:
-        dp = z0-z1 if abs(z0-z1)<dc else z1-z0 ##TEST
-        # Line inclination is at most 1
-        d_horizontal = 2*dr      # delta east in book
-        d_diagonal   = 2*(dr-dc) # delta northeast in book
+        dp = z0-z1 if abs(z0-z1)<dc else z1-z0 ##TEST # dp = delta profundidade, delta z
+        # Line inclination is, at most, 1
+        d_horizontal = 2*dr      # delta east in book - plane x-y
+        d_diagonal   = 2*(dr-dc) # delta northeast in book - plane x-y
 
-        d_hp = 2*dp      ##TEST
-        d_dp = 2*(dp-dc) ##TEST
+        d_hp = 2*dp      ##TEST # delta horizontal - plane x-z
+        d_dp = 2*(dp-dc) ##TEST # delta vertical - plane x-z
 
-        d_z = 2*dp - dc ##TEST
+        d_z = 2*dp - dc ##TEST #starting value
 
         # ...draws line
-        #Define the direction of the steps by the relative position of the final point
+        # Defines the direction of the steps by the relative position of the final point
         step_row = 1 if y1>=y0 else -1
         step_col = 1 if x1>=x0 else -1
         step_pilha = 1 if z1>=z0 else -1
-        s0, s1 = min(x0,x1), max(x0,x1) #Define the limits of the 'for'
+        s0, s1 = min(x0,x1), max(x0,x1) # Defines the limits of the 'for'
         d = 2*dr - dc # starting D value, D_init in book
         for c in range(s0,s1+1):
             #Verify if the pixels are in the bound of the image
@@ -95,14 +94,14 @@ def draw_line(image, x0, y0, z0, x1, y1, z1, color):
                 ##TEST
                 if z > zbuffer[x,y]:
                     zbuffer[x,y] = z
-                    #Tranform the point by the correspondent pixel and draw it
+                    # Tranforms the point by the correspondent pixel and draws it
                     image[h-1-y,x] = color
             except Exception:
                 continue
                 #print(f'The input {x},{y} from ({x0},{y0}) to ({x1},{y1}) is a pixel out of the defined scale', file=sys.stderr)
                 #sys.exit(1)
 
-            #Define the x and y for the next point
+            # Defines the x and y for the next point
             if d<=0:
                 d += d_horizontal
                 x += step_col
@@ -121,22 +120,22 @@ def draw_line(image, x0, y0, z0, x1, y1, z1, color):
         d_vertical = 2*dc
         d_diagonal = 2*(dc-dr)
         #...draws lines
-        #Define the direction of the steps by the relative position of the final point
+        # Defines the direction of the steps by the relative position of the final point
         step_col = 1 if x1>=x0 else -1
         step_row = 1 if y1>=y0 else -1
         s0, s1 = min(y0,y1), max(y0,y1) #Define the limits of the 'for'
         d = 2*dc - dr # starting D value, D_init in book
         for r in range(s0,s1+1):
-            #Verify if the pixels are in the bound of the image
+            # Verify if the pixels are in the bound of the image
             try:
-                #Tranform the point by the correspondent pixel and draw it
+                #Tranforms the point by the correspondent pixel and draws it
                 image[h-1-y,x] = color
             except Exception:
                 continue
                 #print(f'The input {x},{y} from ({x0},{y0}) to ({x1},{y1}) is a pixel out of the defined scale', file=sys.stderr)
                 #sys.exit(1)
 
-            #Define the x and y for the next point
+            # Defines the x and y for the next point
             if (d<=0):
                 d += d_vertical
                 y += step_row
@@ -146,7 +145,7 @@ def draw_line(image, x0, y0, z0, x1, y1, z1, color):
                 x += step_col
 
 def make_matrix(info_line):
-    #Make the list info_line into a 4x4 matrix
+    # Turns list into a 4x4 matrix
     matrix = np.zeros((4,4))
     k=0
     for i in range(0,4):
@@ -159,7 +158,7 @@ def make_matrix(info_line):
 
 # Parses and checks command-line arguments
 if len(sys.argv)!=3:
-    print("usage: python draw_2d_model.py <input.dat> <output.ppm>\n"
+    print("usage: python draw_3d_model.py <input.dat> <output.ppm>\n"
           "       interprets the drawing instructions in the input file and renders\n"
           "       the output in the NETPBM PPM format into output.ppm")
     sys.exit(1)
@@ -234,29 +233,29 @@ for line_n,line in enumerate(input_lines[2:], start=3):
         check_values(CHANNELS_N)
         background_color = np.array(values, dtype=IMAGE_DTYPE)
         image[...] = background_color
-        zbuffer[...] = ZBUFFER_BACKGROUND
+        zbuffer[...] = ZBUFFER_BACKGROUNDx`
 
     elif command == 'C':
-        #Change the color of the pincel
+        # Changes the color of the brush
         values = [int(x) for x in tokens[1:]]
         check_values(CHANNELS_N)
         color = np.array(values, dtype=IMAGE_DTYPE)
 
     elif command == 'L':
-        #Draw a line between two determinates points
+        # Draws a line between two determinates points
         values = [int(x) for x in tokens[1:]]
         check_values(6)
         draw_line(image,values[0],values[1],values[2],values[3],values[4],values[5],color)
     
     elif command == 'P':
-        #Draw an open polyline with n points
+        # Draws an open polyline with n points
         values = [int(x) for x in tokens[1:]]
         check_values(1+3*values[0])
         for i in range(1, 2*(values[0]-1),2):
             draw_line(image,values[0],values[1],values[2],values[3],values[4],values[5],color)
     
     elif command == 'R':
-        #Draw a polygon with determineded n points
+        # Draws a polygon with determineded n points
         values = [int(x) for x in tokens[1:]]
         check_values(1+3*values[0])
         for i in range(1, 2*(values[0]-1),2):
@@ -265,13 +264,13 @@ for line_n,line in enumerate(input_lines[2:], start=3):
         draw_line(image,values[2*values[0]-2],values[2*values[0]-1],values[2*values[0]],values[1],values[2],values[3],color)
 
     elif command == 'M':
-        #Change tranform_matrix that aplies every object to be drawned by the M matrix
+        # Changes tranform_matrix that's applied to every drawn object by the M matrix
         values = [float(x) for x in tokens[1:]]
         check_values(16)
         transform_matrix = make_matrix(values)
 
     elif command == 'm':
-        #Change transform_matrix that aplies every object to be drawned by transform_matrix*= m
+        # Changes transform_matrix that's applied to every drawn object by transform_matrix *= m
         values = [float(x) for x in tokens[1:]]
         check_values(16)
         transform_matrix = transform_matrix.dot(make_matrix(values))
@@ -290,6 +289,12 @@ for line_n,line in enumerate(input_lines[2:], start=3):
     elif command == 'SPH':
         values = [int(x) for x in tokens[1:]]
         but = True
+        R = values[0]
+        meridians = values [1]
+        parallels = values [2]
+        
+        #
+
 
     elif command == 'CUB':
         values = [int(x) for x in tokens[1:]]
@@ -297,21 +302,21 @@ for line_n,line in enumerate(input_lines[2:], start=3):
         L,diagonal = values[0]/2,values[1]
         vertices = [[-L,-L,L],[-L,L,L],[L,L,L],[L,-L,L],[-L,-L,-L],[-L,L,-L],[L,L,-L],[L,-L,-L]]
         
-        #Conecta os vertices com mesmo z
+        # Connects vertices with same z
         for i in range(0,3):
-            #Conecta os vertices com z positivo
+            # Connects vertices with positive z
             draw_line(image,vertices[i][0],vertices[i][1],L,vertices[i+1][0],vertices[i+1][1],L,color)
-            #Conecta os vertices com z negativo
+            # Connects vertices with negative z
             draw_line(image,vertices[i][0],vertices[i][1],-L,vertices[i+1][0],vertices[i+1][1],-L,color)
-        #Completa o desenhos para os dois casos
+        # Complets drawings for both cases
         draw_line(image,vertices[3][0],vertices[3][1],L,vertices[0][0],vertices[0][1],L,color)
         draw_line(image,vertices[3][0],vertices[3][1],-L,vertices[0][0],vertices[0][1],-L,color)
 
-        #Conecta os vertices de z positivo com seus respectivos de z negativo
+        # Connects positive z vertices with their respectives negative z vertices
         for i in range(0,4):
             draw_line(image,vertices[i][0],vertices[i][1],L,vertices[i][0],vertices[i][1],-L,color)
         
-        #Desenhas as diagonais caso for requerido
+        # If required, draws diagonals
         if diagonal == 1:
             for i in range(0,2):
                 for j in (-L,L):
