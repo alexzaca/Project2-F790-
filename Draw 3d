@@ -293,8 +293,18 @@ for line_n,line in enumerate(input_lines[2:], start=3):
         meridians = values [1]
         parallels = values [2]
         
-        #
-
+        # Calculate angles in spherical coordinate system
+        for j in range (0, parallels + 2):
+            theta = np.pi*j/(parallels + 1)    # As we have a parallel, we need to break theta step in two parts
+            for i in range (0, 2*meridians):
+                phi = np.pi*i/meridians         # It is, actually, phi = 2*pi*i/(2*meridians)
+                # Calculates points in spherical coordinates
+                x = R*np.cos(phi)*np.sin(theta)
+                y = R*np.sin(phi)*np.sin(theta)
+                z = R*np.cos(theta)
+                # Verifies if it is a pole, so it does not repeat point
+                if theta == 0 or theta == phi:
+                    break
 
     elif command == 'CUB':
         values = [int(x) for x in tokens[1:]]
