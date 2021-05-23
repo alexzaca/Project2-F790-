@@ -233,7 +233,7 @@ for line_n,line in enumerate(input_lines[2:], start=3):
         check_values(CHANNELS_N)
         background_color = np.array(values, dtype=IMAGE_DTYPE)
         image[...] = background_color
-        zbuffer[...] = ZBUFFER_BACKGROUNDx`
+        zbuffer[...] = ZBUFFER_BACKGROUND
 
     elif command == 'C':
         # Changes the color of the brush
