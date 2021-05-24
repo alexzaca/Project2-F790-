@@ -1,4 +1,4 @@
-# Renders a 2D model into a PPM image
+# Renders a 3D model into a PPM image
 import sys
 import numpy as np
 
@@ -71,21 +71,22 @@ def draw_line(image, x0, y0, z0, x1, y1, z1, color):
     # Computes differences
     dx = x1-x0
     dy = y1-y0
-    dz = z0-z1 ##TEST
+    dz = z0-z1 
     dc = abs(dx) # delta x in book - here we are using row, col coordinates
     dr = abs(dy) # delta y in book
-    dbuf = abs(dz) ##TEST
-    x,y,z = x0,y0,z0 #starting the points to be calculate and draw ##TEST WITH Z  
+    dbuf = abs(dz) 
+    x,y,z = x0,y0,z0 #starting the points to be calculate and draw
+    #Define the direction of variation for z 
     if dbuf <= dc:
-        d_hbuf = 2*dbuf      ##TEST
-        d_dbuf = 2*(dbuf-dc) ##TEST
-        d_z = 2*dbuf - dc ##TEST
-        step_buf = 1 if z1>=z0 else -1 ##TEST
+        d_hbuf = 2*dbuf      
+        d_dbuf = 2*(dbuf-dc) 
+        d_z = 2*dbuf - dc 
+        step_buf = 1 if z1>=z0 else -1 
     else:
-        d_vbuf = 2*dbuf      ##TEST
-        d_dbuf = 2*(dbuf-dr) ##TEST
-        d_z = 2*dbuf - dr ##TEST
-        step_buf = 1 if z1>=z0 else -1 ##TEST
+        d_vbuf = 2*dbuf      
+        d_dbuf = 2*(dbuf-dr) 
+        d_z = 2*dbuf - dr 
+        step_buf = 1 if z1>=z0 else -1 
 
     if dr <= dc:
         # Line inclination is at most 1
@@ -99,16 +100,15 @@ def draw_line(image, x0, y0, z0, x1, y1, z1, color):
         d = 2*dr - dc # starting D value, D_init in book
         for c in range(s0,s1+1):
             #Verify if the pixels are in the bound of the image
-            #try:
-                ##TEST
-            if z >= zbuffer[x,y]:
-                zbuffer[x,y] = z
-                #Tranform the point by the correspondent pixel and draw it
-                image[int(h/2-1-y),int(w/2+x)] = color
-                
-            #except Exception:
+            if int(h/2-1-y) >= 0 and int(w/2+x) >=0 and int(h/2-1-y) <h and int(w/2+x) <w:
+                if z >= zbuffer[int(h/2-1-y),int(w/2+x)]:
+                    zbuffer[int(h/2-1-y),int(w/2+x)] = z
+                    #Tranform the point by the correspondent pixel and draw it
+                    image[int(h/2-1-y),int(w/2+x)] = color
+                    
+            #except IndexError:
                 #continue
-                #print(f'The input {x},{y} from ({x0},{y0}) to ({x1},{y1}) is a pixel out of the defined scale', file=sys.stderr)
+                #print(f'The input {x},{y} from ({x0},{y0}) to ({x1},{y1}) and {int(h/2-1-y),int(w/2+x)} is a pixel out of the defined scale', file=sys.stderr)
                 #sys.exit(1)
 
             #Define the x and y for the next point
@@ -146,15 +146,14 @@ def draw_line(image, x0, y0, z0, x1, y1, z1, color):
         d = 2*dc - dr # starting D value, D_init in book
         for r in range(s0,s1+1):
             #Verify if the pixels are in the bound of the image
-            #try:
-                ##TEST
-            if z >= zbuffer[x,y]:
-                zbuffer[x,y] = z
-                #Tranform the point by the correspondent pixel and draw it
-                image[int(h/2-1-y),int(w/2+x)] = color
-                
-            #except Exception:
-            #    continue
+            if int(h/2-1-y) >= 0 and int(w/2+x) >=0 and int(h/2-1-y) <h and int(w/2+x) <w:
+                if z >= zbuffer[int(h/2-1-y),int(w/2+x)]:
+                    zbuffer[int(h/2-1-y),int(w/2+x)] = z
+                    #Tranform the point by the correspondent pixel and draw it
+                    image[int(h/2-1-y),int(w/2+x)] = color
+                    
+            #except IndexError:
+                #continue
                 #print(f'The input {x},{y} from ({x0},{y0}) to ({x1},{y1}) is a pixel out of the defined scale', file=sys.stderr)
                 #sys.exit(1)
 
@@ -309,25 +308,25 @@ for line_n,line in enumerate(input_lines[2:], start=3):
 
     elif command == 'L':
         #Draw a line between two determinates points
-        values = [int(x) for x in tokens[1:]]
+        values = [float(x) for x in tokens[1:]]
         check_values(6)
         draw_line(image,values[0],values[1],values[2],values[3],values[4],values[5],color)
     
     elif command == 'P':
         #Draw an open polyline with n points
-        values = [int(x) for x in tokens[1:]]
-        check_values(1+3*values[0])
-        for i in range(1, 3*(values[0]-1),3):
+        values = [float(x) for x in tokens[1:]]
+        check_values(1+3*int(values[0]))
+        for i in range(1, 3*(int(values[0])-1),3):
             draw_line(image,values[i],values[i+1],values[i+2],values[i+3],values[i+4],values[i+5],color)
     
     elif command == 'R':
         #Draw a polygon with determineded n points
-        simple_values = [int(x) for x in tokens[1:]]
-        values = []
-        for i in range(1,len(simple_values)-1,3):
-            values.append([simple_values[i],simple_values[i+1],simple_values[i+2]])
-        check_values(simple_values[0])
-        draw_polygon(values)
+        values = [float(x) for x in tokens[1:]]
+        new_values = []
+        check_values(1+3*int(values[0]))
+        for i in range(1,len(values)-1,3):
+            new_values.append([values[i],values[i+1],values[i+2]])
+        draw_polygon(new_values)
 
     elif command == 'M':
         #Change tranform_matrix that aplies every object to be drawned by the M matrix
@@ -353,8 +352,8 @@ for line_n,line in enumerate(input_lines[2:], start=3):
         transform_matrix = pilha_matrix.pop()
 
     elif command == 'SPH':
-        values = [int(x) for x in tokens[1:]]
-        r,meridian,parallel = values[0],values[1],values[2]
+        values = [float(x) for x in tokens[1:]]
+        r,meridian,parallel = values[0],int(values[1]),int(values[2])
         points = sphere(r,meridian,parallel)
         #Exemple of points = [[pole north],[north parallel],...,[south parallel],[south pole]]
         #Exemple of [parallel] = [[first point],...,[last point]] where [point] = [x,y,z]
@@ -376,7 +375,7 @@ for line_n,line in enumerate(input_lines[2:], start=3):
             draw_polygon(conjunt)
 
     elif command == 'CUB':
-        values = [int(x) for x in tokens[1:]]
+        values = [float(x) for x in tokens[1:]]
         check_values(2)
         L,diagonal = values[0]/2,values[1]
         vertices = [[-L,-L,L],[-L,L,L],[L,L,L],[L,-L,L],[-L,-L,-L],[-L,L,-L],[L,L,-L],[L,-L,-L]]
