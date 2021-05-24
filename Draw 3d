@@ -105,11 +105,6 @@ def draw_line(image, x0, y0, z0, x1, y1, z1, color):
                     zbuffer[int(h/2-1-y),int(w/2+x)] = z
                     # Tranforms the point by the correspondent pixel and draws it
                     image[int(h/2-1-y),int(w/2+x)] = color
-                    
-            #except IndexError:
-                #continue
-                #print(f'The input {x},{y} from ({x0},{y0}) to ({x1},{y1}) and {int(h/2-1-y),int(w/2+x)} is a pixel out of the defined scale', file=sys.stderr)
-                #sys.exit(1)
 
             # Defines x and y for the next point
             if d<=0:
@@ -151,11 +146,7 @@ def draw_line(image, x0, y0, z0, x1, y1, z1, color):
                     zbuffer[int(h/2-1-y),int(w/2+x)] = z
                     # Tranforms the point by the correspondent pixel and draws it
                     image[int(h/2-1-y),int(w/2+x)] = color
-                    
-            #except IndexError:
-                #continue
-                #print(f'The input {x},{y} from ({x0},{y0}) to ({x1},{y1}) is a pixel out of the defined scale', file=sys.stderr)
-                #sys.exit(1)
+
 
             # Defines x and y for the next point
             if (d<=0):
@@ -185,32 +176,32 @@ def draw_polygon(points):
     
 def sphere(r,quant_m,quant_p): 
     pi = np.pi
-    #Points of sphere from de north pole, parallel by parallel, to south pole
+    # Points of sphere from de north pole, parallel by parallel, to south pole
     sphere_points = []
-    #Join the points from a parallel to then be add as a element in the sphere_points
+    # Joins the points from a parallel, to then add as a element in the sphere_points
     intermediary = [] 
     for j in range(0,quant_p+2):
         theta = pi*j/(quant_p+1) 
         for i in range(0,2*quant_m):
             phi = pi*i/quant_m
-            #Aqui na verdade é 2*pi*i/(2*quant_m)
+            # It is actually 2*pi*i/(2*quant_m)
 
             x = r*np.cos(phi)*np.sin(theta)
-            z = r*np.sin(theta)*np.sin(phi) #!!!!!!!!!!! pode não tar certo
+            z = r*np.sin(theta)*np.sin(phi)
             y = r*np.cos(theta)
 
             intermediary.append([x,y,z])
             
-            #Make the interruption of the loop if it was the pole 
+            # Interrupts the loop if it is a pole 
             if theta == 0 or theta == pi: 
                 break
-        #Adiciona um elemento com os pontos de um paralelo e limpa o intermediary
+        # Adds an element with all parallels' points (to each parallel) and cleans 'intermediary'
         sphere_points.append(intermediary)
         intermediary = []
     return sphere_points
 
 def make_matrix(info_line):
-    #Make the list info_line into a 4x4 matrix
+    # Turns list info_line into a 4x4 matrix
     matrix = np.zeros((4,4))
     k=0
     for i in range(0,4):
@@ -278,19 +269,6 @@ for line_n,line in enumerate(input_lines[2:], start=3):
                   file=sys.stderr)
             sys.exit(1)
 
-    #commands:
-    #V --> 16 numeros representa matriz de projeção viewport que substituirá a standart
-    #M --> 16 numeros substitui a matriz de trnasformação
-    #m --> 16 numeros multiplica a matriz de transfomração
-    #c --> cor de fundo da imagem
-    #C --> cor da caneta
-    #L --> 6 números representa um segmento de reta a ser traçado
-    #P --> N e 3N numeros polilinha
-    #R --> N e 3N poligono
-    #PUSH --> guarda a atual matriz de transformação numa pilha de matrizes
-    #POP --> tira a matriz da pilha e utiliza como a matriz de transformaçãov
-    #SPH --> 3 numeros representa uma esfera com raio, num de meridianos, num de paralelos
-    #CUB --> 2 numeros desenha um cubo dando valor do lado, 0||1 diagonal ausente ou presente
 
     if command == 'c':
         # Clears with new background color        
@@ -301,26 +279,26 @@ for line_n,line in enumerate(input_lines[2:], start=3):
         zbuffer[...] = ZBUFFER_BACKGROUND
 
     elif command == 'C':
-        #Change the color of the pincel
+        # Changes the color of the pincel
         values = [int(x) for x in tokens[1:]]
         check_values(CHANNELS_N)
         color = np.array(values, dtype=IMAGE_DTYPE)
 
     elif command == 'L':
-        #Draw a line between two determinates points
+        # Draws a line between two determinates points
         values = [float(x) for x in tokens[1:]]
         check_values(6)
         draw_line(image,values[0],values[1],values[2],values[3],values[4],values[5],color)
     
     elif command == 'P':
-        #Draw an open polyline with n points
+        # Draws an open polyline with n points
         values = [float(x) for x in tokens[1:]]
         check_values(1+3*int(values[0]))
         for i in range(1, 3*(int(values[0])-1),3):
             draw_line(image,values[i],values[i+1],values[i+2],values[i+3],values[i+4],values[i+5],color)
     
     elif command == 'R':
-        #Draw a polygon with determineded n points
+        # Draws a polygon with determineded n points
         values = [float(x) for x in tokens[1:]]
         new_values = []
         check_values(1+3*int(values[0]))
@@ -329,13 +307,13 @@ for line_n,line in enumerate(input_lines[2:], start=3):
         draw_polygon(new_values)
 
     elif command == 'M':
-        #Change tranform_matrix that aplies every object to be drawned by the M matrix
+        # Changes tranform_matrix that applies to every object to be drawn by the M matrix
         values = [float(x) for x in tokens[1:]]
         check_values(16)
         transform_matrix = make_matrix(values)
 
     elif command == 'm':
-        #Change transform_matrix that aplies every object to be drawned by transform_matrix*= m
+        # Changes transform_matrix that applies to every object to be drawn by transform_matrix*= m
         values = [float(x) for x in tokens[1:]]
         check_values(16)
         transform_matrix = transform_matrix.dot(make_matrix(values))
@@ -355,15 +333,12 @@ for line_n,line in enumerate(input_lines[2:], start=3):
         values = [float(x) for x in tokens[1:]]
         r,meridian,parallel = values[0],int(values[1]),int(values[2])
         points = sphere(r,meridian,parallel)
-        #Exemple of points = [[pole north],[north parallel],...,[south parallel],[south pole]]
-        #Exemple of [parallel] = [[first point],...,[last point]] where [point] = [x,y,z]
-        #point[][][] := ponint[the pole or the parallel][the point in parallel][select x,y,z]
 
-        #Draw the parallels
+        # Draws parallels
         for i in range(1, parallel+1):
             draw_polygon(points[i])
         
-        #Draw the meridians
+        # Draws meridians
         for j in range(0,meridian):
             conjunt = []
             conjunt.append(points[0][0])
@@ -380,15 +355,15 @@ for line_n,line in enumerate(input_lines[2:], start=3):
         L,diagonal = values[0]/2,values[1]
         vertices = [[-L,-L,L],[-L,L,L],[L,L,L],[L,-L,L],[-L,-L,-L],[-L,L,-L],[L,L,-L],[L,-L,-L]]
         
-        #Conecta os vertices com mesmo z
+        # Connects vertices with same z
         draw_polygon(vertices[:4])
         draw_polygon(vertices[4:8])
         
-        #Conecta os vertices de z positivo com seus respectivos de z negativo
+        # Connects z positive vertices with their correspondent z negative vertices
         for i in range(0,4):
             draw_line(image,vertices[i][0],vertices[i][1],L,vertices[i][0],vertices[i][1],-L,color)
         
-        #Desenhas as diagonais caso for requerido
+        # Draws diagonals, if asked
         if diagonal == 1:
             for j in (-L,L):
                 for i in (1,-1):
