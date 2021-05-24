@@ -55,29 +55,39 @@ def draw_line(image, x0, y0, z0, x1, y1, z1, color):
     p0 = transform_matrix.dot([float(x0),float(y0),float(z0),1])
     p1 = transform_matrix.dot([float(x1),float(y1),float(z1),1])
     #Aply the projection matrix in the points
-    p0 = projection_matrix.dot([float(x0),float(y0),float(z0),1])
-    p1 = projection_matrix.dot([float(x1),float(y1),float(z1),1])
-    #Aplying, if four dimension != 1, the homogeneous transformers
-    p0 = (1/p0[3])*p0 if p0[3] != 1 else p0
-    p1 = (1/p1[3])*p1 if p1[3] != 1 else p1
+    p0 = projection_matrix.dot(p0)
+    p1 = projection_matrix.dot(p1)
+    #Define the z points for the buffer
+    z0,z1 = int(p0[2]),int(p1[2])
+    #Aplying, if four dimension != 0, the homogeneous transformers
+    p0 = (1/p0[3])*p0 if p0[3] != 0 else p0
+    p1 = (1/p1[3])*p1 if p1[3] != 0 else p1    
     #Rounding the result to integer
-    np.rint(p0)
-    np.rint(p1)
+    p0 = np.rint(p0)
+    p1 = np.rint(p1)
     #Define the two new poits initial and final to draw the line in 3d world
-    x0,y0,z0 = int(p0[0]),int(p0[1]),int(p0[2])
-    x1,y1,z1 = int(p1[0]),int(p1[1]),int(p1[2])
+    x0,y0 = int(p0[0]),int(p0[1])
+    x1,y1 = int(p1[0]),int(p1[1])
     # Computes differences
     dx = x1-x0
     dy = y1-y0
+    dz = z0-z1 ##TEST
     dc = abs(dx) # delta x in book - here we are using row, col coordinates
     dr = abs(dy) # delta y in book
-    x,y,z = x0,y0,z0 #starting the points to be calculate and draw ##TEST WITH Z
-    if dr <= dc:
-        dbuf = z0-z1 if abs(z0-z1)<=dc else z1-z0 ##TEST
+    dbuf = abs(dz) ##TEST
+    x,y,z = x0,y0,z0 #starting the points to be calculate and draw ##TEST WITH Z  
+    if dbuf <= dc:
         d_hbuf = 2*dbuf      ##TEST
         d_dbuf = 2*(dbuf-dc) ##TEST
         d_z = 2*dbuf - dc ##TEST
         step_buf = 1 if z1>=z0 else -1 ##TEST
+    else:
+        d_vbuf = 2*dbuf      ##TEST
+        d_dbuf = 2*(dbuf-dr) ##TEST
+        d_z = 2*dbuf - dr ##TEST
+        step_buf = 1 if z1>=z0 else -1 ##TEST
+
+    if dr <= dc:
         # Line inclination is at most 1
         d_horizontal = 2*dr      # delta east in book
         d_diagonal   = 2*(dr-dc) # delta northeast in book
@@ -89,14 +99,15 @@ def draw_line(image, x0, y0, z0, x1, y1, z1, color):
         d = 2*dr - dc # starting D value, D_init in book
         for c in range(s0,s1+1):
             #Verify if the pixels are in the bound of the image
-            try:
+            #try:
                 ##TEST
-                if z < zbuffer[x,y]:
-                    zbuffer[x,y] = z
-                    #Tranform the point by the correspondent pixel and draw it
-                image[h-1-y/z,x/z] = color
-            except Exception:
-                continue
+            if z >= zbuffer[x,y]:
+                zbuffer[x,y] = z
+                #Tranform the point by the correspondent pixel and draw it
+                image[int(h/2-1-y),int(w/2+x)] = color
+                
+            #except Exception:
+                #continue
                 #print(f'The input {x},{y} from ({x0},{y0}) to ({x1},{y1}) is a pixel out of the defined scale', file=sys.stderr)
                 #sys.exit(1)
 
@@ -108,18 +119,22 @@ def draw_line(image, x0, y0, z0, x1, y1, z1, color):
                 d += d_diagonal
                 y += step_row
                 x += step_col
-            ##TEST
-            if d_z<=0:
-                d_z += d_hbuf
-            else:
-                d_z += d_dbuf
-                z += step_buf
+
+            if dbuf <= dc:
+                if d_z<=0:
+                    d_z += d_hbuf
+                else:
+                    d_z += d_dbuf
+                    z += step_buf
+            else:        
+                if d_z<=0:
+                    d_z += d_vbuf
+                else:
+                    d_z += d_dbuf
+                    z += step_buf
+            
     else: 
-        dbuf = z0-z1 if abs(z0-z1)>dc else z1-z0 ##TEST
-        d_vbuf = 2*dbuf      ##TEST
-        d_dbuf = 2*(dbuf-dr) ##TEST
-        d_z = 2*dbuf - dr ##TEST
-        step_buf = 1 if z1>=z0 else -1 ##TEST
+        
         # Line inclination is greater than one -- inverts the roles of row and column
         d_vertical = 2*dc
         d_diagonal = 2*(dc-dr)
@@ -131,14 +146,15 @@ def draw_line(image, x0, y0, z0, x1, y1, z1, color):
         d = 2*dc - dr # starting D value, D_init in book
         for r in range(s0,s1+1):
             #Verify if the pixels are in the bound of the image
-            try:
+            #try:
                 ##TEST
-                if z < zbuffer[x,y]:
-                    zbuffer[x,y] = z
-                    #Tranform the point by the correspondent pixel and draw it
-                image[h-1-y,x] = color
-            except Exception:
-                continue
+            if z >= zbuffer[x,y]:
+                zbuffer[x,y] = z
+                #Tranform the point by the correspondent pixel and draw it
+                image[int(h/2-1-y),int(w/2+x)] = color
+                
+            #except Exception:
+            #    continue
                 #print(f'The input {x},{y} from ({x0},{y0}) to ({x1},{y1}) is a pixel out of the defined scale', file=sys.stderr)
                 #sys.exit(1)
 
@@ -150,22 +166,29 @@ def draw_line(image, x0, y0, z0, x1, y1, z1, color):
                 d += d_diagonal
                 y += step_row
                 x += step_col
-            #TEST
-            if d_z<=0:
-                d_z += d_vbuf
-            else:
-                d_z += d_dbuf
-                z += step_buf
+
+            if dbuf <= dc:
+                if d_z<=0:
+                    d_z += d_hbuf
+                else:
+                    d_z += d_dbuf
+                    z += step_buf
+            else:        
+                if d_z<=0:
+                    d_z += d_vbuf
+                else:
+                    d_z += d_dbuf
+                    z += step_buf       
 
 def draw_polygon(points):
     for i in range(-1,len(points)-1):
         draw_line(image,points[i][0],points[i][1],points[i][2],points[i+1][0],points[i+1][1],points[i+1][2],color)
     
-def sphere(r,quant_m,quant_p):
+def sphere(r,quant_m,quant_p): 
     pi = np.pi
-    #Points of sphere from de north pole, parallel by parallel to south pole
+    #Points of sphere from de north pole, parallel by parallel, to south pole
     sphere_points = []
-    #Junta os pontos de um paralelo para depois ser adicionada como elemento no sphere_points
+    #Join the points from a parallel to then be add as a element in the sphere_points
     intermediary = [] 
     for j in range(0,quant_p+2):
         theta = pi*j/(quant_p+1) 
@@ -174,8 +197,8 @@ def sphere(r,quant_m,quant_p):
             #Aqui na verdade é 2*pi*i/(2*quant_m)
 
             x = r*np.cos(phi)*np.sin(theta)
-            y = r*np.sin(theta)*np.sin(phi)
-            z = r*np.cos(theta)
+            z = r*np.sin(theta)*np.sin(phi) #!!!!!!!!!!! pode não tar certo
+            y = r*np.cos(theta)
 
             intermediary.append([x,y,z])
             
@@ -294,8 +317,8 @@ for line_n,line in enumerate(input_lines[2:], start=3):
         #Draw an open polyline with n points
         values = [int(x) for x in tokens[1:]]
         check_values(1+3*values[0])
-        for i in range(1, 3*(values[0]-1),2):
-            draw_line(image,values[0],values[1],values[2],values[3],values[4],values[5],color)
+        for i in range(1, 3*(values[0]-1),3):
+            draw_line(image,values[i],values[i+1],values[i+2],values[i+3],values[i+4],values[i+5],color)
     
     elif command == 'R':
         #Draw a polygon with determineded n points
@@ -303,8 +326,8 @@ for line_n,line in enumerate(input_lines[2:], start=3):
         values = []
         for i in range(1,len(simple_values)-1,3):
             values.append([simple_values[i],simple_values[i+1],simple_values[i+2]])
-        check_values(1+simple_values[0])
-        draw_polygon(simple_values[0],values)
+        check_values(simple_values[0])
+        draw_polygon(values)
 
     elif command == 'M':
         #Change tranform_matrix that aplies every object to be drawned by the M matrix
@@ -339,17 +362,17 @@ for line_n,line in enumerate(input_lines[2:], start=3):
 
         #Draw the parallels
         for i in range(1, parallel+1):
-            draw_polygon(points[i][:2*meridian])
+            draw_polygon(points[i])
         
         #Draw the meridians
         for j in range(0,meridian):
             conjunt = []
-            conjunt.append(points[0])
+            conjunt.append(points[0][0])
             for k in range(1, parallel+1):
                 conjunt.append(points[k][j])
-            conjunt.append(points[-1])
-            for k in range(1, parallel+1):
-                conjunt.append(points[k][j+2])
+            conjunt.append(points[-1][0])
+            for k in range(parallel,0,-1):
+                conjunt.append(points[k][j+meridian])
             draw_polygon(conjunt)
 
     elif command == 'CUB':
@@ -368,13 +391,13 @@ for line_n,line in enumerate(input_lines[2:], start=3):
         
         #Desenhas as diagonais caso for requerido
         if diagonal == 1:
-            for i in range(0,2):
-                for j in (-L,L):
-                    draw_line(image,vertices[i][0],vertices[i][1],j,vertices[i+2][0],vertices[i+2][1],j,color)
+            for j in (-L,L):
+                for i in (1,-1):
+                    draw_line(image,L,i*L,j,-L,-i*L,j,color)
 
-                    draw_line(image,j,vertices[i][1],vertices[i][2],j,vertices[i+2][1],vertices[i][2],color)
+                    draw_line(image,L,j,i*L,-L,j,-i*L,color)
 
-                    draw_line(image,vertices[i][0],j,vertices[i][2],vertices[i+2][0],j,vertices[i][2],color)
+                    draw_line(image,j,L,i*L,j,-L,-i*L,color)
 
     else:
         print(f'line {line_n}: unrecognized command "{command}"!', file=sys.stderr)
