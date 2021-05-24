@@ -157,12 +157,10 @@ def draw_line(image, x0, y0, z0, x1, y1, z1, color):
                 d_z += d_dbuf
                 z += step_buf
 
-def draw_polygon(N_value,points):
-    for i in range(0, 3*(N_value-1),2):
-        draw_line(image,points[0],points[1],points[2],points[3],points[4],points[5],color)
+def draw_polygon(points):
+    for i in range(-1,len(points)-1):
+        draw_line(image,points[i][0],points[i][1],points[i][2],points[i+1][0],points[i+1][1],points[i+1][2],color)
     
-    draw_line(image,points[3*N_value-2],points[3*N_value-1],points[3*N_value],points[0],points[1],points[2],color)
-
 def sphere(r,quant_m,quant_p):
     pi = np.pi
     #Points of sphere from de north pole, parallel by parallel to south pole
@@ -301,9 +299,12 @@ for line_n,line in enumerate(input_lines[2:], start=3):
     
     elif command == 'R':
         #Draw a polygon with determineded n points
-        values = [int(x) for x in tokens[1:]]
-        check_values(1+3*values[0])
-        draw_polygon(values[0],values[1:])
+        simple_values = [int(x) for x in tokens[1:]]
+        values = []
+        for i in range(1,len(simple_values)-1,3):
+            values.append([simple_values[i],simple_values[i+1],simple_values[i+2]])
+        check_values(1+simple_values[0])
+        draw_polygon(simple_values[0],values)
 
     elif command == 'M':
         #Change tranform_matrix that aplies every object to be drawned by the M matrix
@@ -330,28 +331,26 @@ for line_n,line in enumerate(input_lines[2:], start=3):
 
     elif command == 'SPH':
         values = [int(x) for x in tokens[1:]]
-        r,merdian,parallel = values[0],values[1],values[2]
-        points = sphere(r,merdian,parallel)
+        r,meridian,parallel = values[0],values[1],values[2]
+        points = sphere(r,meridian,parallel)
         #Exemple of points = [[pole north],[north parallel],...,[south parallel],[south pole]]
         #Exemple of [parallel] = [[first point],...,[last point]] where [point] = [x,y,z]
+        #point[][][] := ponint[the pole or the parallel][the point in parallel][select x,y,z]
 
-        #Draw the paralles
-        for i in range(1, 4*parallel,4):
-            draw_polygon(2*merdian,points[i:i+4])
+        #Draw the parallels
+        for i in range(1, parallel+1):
+            draw_polygon(points[i][:2*meridian])
         
         #Draw the meridians
-        #Connection with the poles
-        for i in range(0,2*merdian):
-            draw_line(image,points[0][0],points[0][1],points[0][2],points[1][i][0],points[1][i][1],points[1][i][2],color)
-        for i in range(0,2*merdian):
-            draw_line(image,points[-1][0],points[-1][1],points[-1][2],points[len(points)-2][i][0],points[len(points)-2][i][1],points[len(points)-2][i][2],color)
-        
-        #Connection between the parallels
-        for i in range(1,len(points)-2): #Select the parallel
-            for j in range(0,2*merdian): #Select the point
-                #Connect the point related point in the next parallel
-                draw_line(image,points[i][j][0],points[i][j][1],points[i][j][2],points[i+1][j][0],points[i+1][j][1],points[i+1][j][2],color)
-        
+        for j in range(0,meridian):
+            conjunt = []
+            conjunt.append(points[0])
+            for k in range(1, parallel+1):
+                conjunt.append(points[k][j])
+            conjunt.append(points[-1])
+            for k in range(1, parallel+1):
+                conjunt.append(points[k][j+2])
+
     elif command == 'CUB':
         values = [int(x) for x in tokens[1:]]
         check_values(2)
@@ -359,8 +358,8 @@ for line_n,line in enumerate(input_lines[2:], start=3):
         vertices = [[-L,-L,L],[-L,L,L],[L,L,L],[L,-L,L],[-L,-L,-L],[-L,L,-L],[L,L,-L],[L,-L,-L]]
         
         #Conecta os vertices com mesmo z
-        draw_polygon(4,vertices[:4])
-        draw_polygon(4,vertices[4:8])
+        draw_polygon(vertices[:4])
+        draw_polygon(vertices[4:8])
         
         #Conecta os vertices de z positivo com seus respectivos de z negativo
         for i in range(0,4):
