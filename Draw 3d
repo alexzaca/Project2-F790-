@@ -50,22 +50,22 @@ def save_ppm(image, output_file):
 
 def draw_line(image, x0, y0, z0, x1, y1, z1, color):
     h, w = image.shape[0],image.shape[1]
-    #First, aply the transformers in the inputed points
-    #Aply the standart matrix in the points
+    # First, apply the transformers in inputed points
+    # Applies the standart matrix in the points
     p0 = transform_matrix.dot([float(x0),float(y0),float(z0),1])
     p1 = transform_matrix.dot([float(x1),float(y1),float(z1),1])
-    #Aply the projection matrix in the points
+    # Applies the projection matrix in the points
     p0 = projection_matrix.dot(p0)
     p1 = projection_matrix.dot(p1)
-    #Define the z points for the buffer
+    # Defines the z points for z-buffer
     z0,z1 = int(p0[2]),int(p1[2])
-    #Aplying, if four dimension != 0, the homogeneous transformers
+    # Applying, if fourth dimension != 0, the homogeneous transformers
     p0 = (1/p0[3])*p0 if p0[3] != 0 else p0
     p1 = (1/p1[3])*p1 if p1[3] != 0 else p1    
-    #Rounding the result to integer
+    # Rounding the result to integer
     p0 = np.rint(p0)
     p1 = np.rint(p1)
-    #Define the two new poits initial and final to draw the line in 3d world
+    # Defines two new poits (initial and final) to draw the line in 3d world
     x0,y0 = int(p0[0]),int(p0[1])
     x1,y1 = int(p1[0]),int(p1[1])
     # Computes differences
@@ -75,8 +75,8 @@ def draw_line(image, x0, y0, z0, x1, y1, z1, color):
     dc = abs(dx) # delta x in book - here we are using row, col coordinates
     dr = abs(dy) # delta y in book
     dbuf = abs(dz) 
-    x,y,z = x0,y0,z0 #starting the points to be calculate and draw
-    #Define the direction of variation for z 
+    x,y,z = x0,y0,z0 # starting the points to be calculated and drawn
+    # Defines the direction of variation for z 
     if dbuf <= dc:
         d_hbuf = 2*dbuf      
         d_dbuf = 2*(dbuf-dc) 
@@ -89,21 +89,21 @@ def draw_line(image, x0, y0, z0, x1, y1, z1, color):
         step_buf = 1 if z1>=z0 else -1 
 
     if dr <= dc:
-        # Line inclination is at most 1
+        # Line inclination is, at most, 1
         d_horizontal = 2*dr      # delta east in book
         d_diagonal   = 2*(dr-dc) # delta northeast in book
         # ...draws line
-        #Define the direction of the steps by the relative position of the final point
+        # Defines the direction of the steps by the relative position of the final point
         step_row = 1 if y1>=y0 else -1
         step_col = 1 if x1>=x0 else -1
-        s0, s1 = min(x0,x1), max(x0,x1) #Define the limits of the 'for'
+        s0, s1 = min(x0,x1), max(x0,x1) # Defines the limits of 'for'
         d = 2*dr - dc # starting D value, D_init in book
         for c in range(s0,s1+1):
-            #Verify if the pixels are in the bound of the image
+            # Verifies if the pixels are in the bound of the image
             if int(h/2-1-y) >= 0 and int(w/2+x) >=0 and int(h/2-1-y) <h and int(w/2+x) <w:
                 if z >= zbuffer[int(h/2-1-y),int(w/2+x)]:
                     zbuffer[int(h/2-1-y),int(w/2+x)] = z
-                    #Tranform the point by the correspondent pixel and draw it
+                    # Tranforms the point by the correspondent pixel and draws it
                     image[int(h/2-1-y),int(w/2+x)] = color
                     
             #except IndexError:
@@ -111,7 +111,7 @@ def draw_line(image, x0, y0, z0, x1, y1, z1, color):
                 #print(f'The input {x},{y} from ({x0},{y0}) to ({x1},{y1}) and {int(h/2-1-y),int(w/2+x)} is a pixel out of the defined scale', file=sys.stderr)
                 #sys.exit(1)
 
-            #Define the x and y for the next point
+            # Defines x and y for the next point
             if d<=0:
                 d += d_horizontal
                 x += step_col
@@ -139,17 +139,17 @@ def draw_line(image, x0, y0, z0, x1, y1, z1, color):
         d_vertical = 2*dc
         d_diagonal = 2*(dc-dr)
         #...draws lines
-        #Define the direction of the steps by the relative position of the final point
+        # Defines the direction of the steps by the relative position of the final point
         step_col = 1 if x1>=x0 else -1
         step_row = 1 if y1>=y0 else -1
-        s0, s1 = min(y0,y1), max(y0,y1) #Define the limits of the 'for'
+        s0, s1 = min(y0,y1), max(y0,y1) # Defines the limits of 'for'
         d = 2*dc - dr # starting D value, D_init in book
         for r in range(s0,s1+1):
-            #Verify if the pixels are in the bound of the image
+            # Verifies if the pixels are in the bound of the image
             if int(h/2-1-y) >= 0 and int(w/2+x) >=0 and int(h/2-1-y) <h and int(w/2+x) <w:
                 if z >= zbuffer[int(h/2-1-y),int(w/2+x)]:
                     zbuffer[int(h/2-1-y),int(w/2+x)] = z
-                    #Tranform the point by the correspondent pixel and draw it
+                    # Tranforms the point by the correspondent pixel and draws it
                     image[int(h/2-1-y),int(w/2+x)] = color
                     
             #except IndexError:
@@ -157,7 +157,7 @@ def draw_line(image, x0, y0, z0, x1, y1, z1, color):
                 #print(f'The input {x},{y} from ({x0},{y0}) to ({x1},{y1}) is a pixel out of the defined scale', file=sys.stderr)
                 #sys.exit(1)
 
-            #Define the x and y for the next point
+            # Defines x and y for the next point
             if (d<=0):
                 d += d_vertical
                 y += step_row
