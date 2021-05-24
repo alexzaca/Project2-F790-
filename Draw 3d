@@ -350,6 +350,7 @@ for line_n,line in enumerate(input_lines[2:], start=3):
             conjunt.append(points[-1])
             for k in range(1, parallel+1):
                 conjunt.append(points[k][j+2])
+            draw_polygon(conjunt)
 
     elif command == 'CUB':
         values = [int(x) for x in tokens[1:]]
