@@ -26,7 +26,6 @@ def put_string(output, output_file):
         print('error writing to output stream', file=sys.stderr)
         sys.exit(1)
 
-
 def save_ppm(image, output_file):
     # Defines image header
     magic_number_1 = 'P'
@@ -101,10 +100,11 @@ def draw_line(image, x0, y0, z0, x1, y1, z1, color):
         for c in range(s0,s1+1):
             # Verifies if the pixels are in the bound of the image
             if int(h/2-1-y) >= 0 and int(w/2+x) >=0 and int(h/2-1-y) <h and int(w/2+x) <w:
+                #Make the buffer verification to decide wich pixel will be draw
                 if z >= zbuffer[int(h/2-1-y),int(w/2+x)]:
                     zbuffer[int(h/2-1-y),int(w/2+x)] = z
                     # Tranforms the point by the correspondent pixel and draws it
-                    image[int(h/2-1-y),int(w/2+x)] = color
+                    image[int(h/2-1-y),int(w/2+x)] = color #The reference is in the center of the image
 
             # Defines x and y for the next point
             if d<=0:
@@ -143,9 +143,10 @@ def draw_line(image, x0, y0, z0, x1, y1, z1, color):
             # Verifies if the pixels are in the bound of the image
             if int(h/2-1-y) >= 0 and int(w/2+x) >=0 and int(h/2-1-y) <h and int(w/2+x) <w:
                 if z >= zbuffer[int(h/2-1-y),int(w/2+x)]:
+                    #Make the buffer verification to decide wich pixel will be draw
                     zbuffer[int(h/2-1-y),int(w/2+x)] = z
                     # Tranforms the point by the correspondent pixel and draws it
-                    image[int(h/2-1-y),int(w/2+x)] = color
+                    image[int(h/2-1-y),int(w/2+x)] = color #The reference is in the center of the image
 
 
             # Defines x and y for the next point
@@ -171,6 +172,7 @@ def draw_line(image, x0, y0, z0, x1, y1, z1, color):
                     z += step_buf       
 
 def draw_polygon(points):
+    #Routine for draw a polygon
     for i in range(-1,len(points)-1):
         draw_line(image,points[i][0],points[i][1],points[i][2],points[i+1][0],points[i+1][1],points[i+1][2],color)
     
@@ -181,10 +183,11 @@ def sphere(r,quant_m,quant_p):
     # Joins the points from a parallel, to then add as a element in the sphere_points
     intermediary = [] 
     for j in range(0,quant_p+2):
+        #Define the theta angle by step j that goes 0 to pi
         theta = pi*j/(quant_p+1) 
         for i in range(0,2*quant_m):
             phi = pi*i/quant_m
-            # It is actually 2*pi*i/(2*quant_m)
+            # #Define the theta by step j angle that goes 0 to 2pi
 
             x = r*np.cos(phi)*np.sin(theta)
             z = r*np.sin(theta)*np.sin(phi)
@@ -264,6 +267,7 @@ for line_n,line in enumerate(input_lines[2:], start=3):
     tokens = line.strip().split()
     command = tokens[0]
     def check_values(n):
+        #Check if the value is in the right form
         if len(values) != n:
             print(f'line {line_n}: command {command} expected {n} values but got {len(values)}!',
                   file=sys.stderr)
@@ -319,14 +323,17 @@ for line_n,line in enumerate(input_lines[2:], start=3):
         transform_matrix = transform_matrix.dot(make_matrix(values))
         
     elif command == 'V':
+        #Change the project matrix that apliy every point
         values = [float(x) for x in tokens[1:]]
         check_values(16)
         projection_matrix = projection_matrix.dot(make_matrix(values))
 
     elif command == 'PUSH':
+        #Save the transfom matrix in the top of the pilha
         pilha_matrix.append(transform_matrix)
 
     elif command == 'POP':
+        #Change the transform matrix to the top matrix in the pilha and removes from there
         transform_matrix = pilha_matrix.pop()
 
     elif command == 'SPH':
