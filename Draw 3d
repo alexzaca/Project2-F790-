@@ -323,17 +323,17 @@ for line_n,line in enumerate(input_lines[2:], start=3):
         transform_matrix = transform_matrix.dot(make_matrix(values))
         
     elif command == 'V':
-        #Change the project matrix that apliy every point
+        # Changes projection matrix that applies to every point
         values = [float(x) for x in tokens[1:]]
         check_values(16)
         projection_matrix = projection_matrix.dot(make_matrix(values))
 
     elif command == 'PUSH':
-        #Save the transfom matrix in the top of the pilha
+        # Saves transfom matrix in the top of the pilha
         pilha_matrix.append(transform_matrix)
 
     elif command == 'POP':
-        #Change the transform matrix to the top matrix in the pilha and removes from there
+        # Changes transform matrix to the top matrix in the pilha and removes from there
         transform_matrix = pilha_matrix.pop()
 
     elif command == 'SPH':
